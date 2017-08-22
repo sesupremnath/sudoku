@@ -1,8 +1,7 @@
 package com.sesu.sudokuSolver;
 
-import java.util.ArrayList;
 import java.util.LinkedList;
-import java.util.NoSuchElementException;
+import java.util.TreeSet;
 
 enum CellType{
 	EMPTY,
@@ -12,72 +11,75 @@ enum CellType{
 
 public class Cell implements Comparable<Cell>{
 	public static int maxValue;
-	private LinkedList<Integer> availableNumbers, usedNumbers;
+	private TreeSet<Integer> availableNumbers;
+	private TreeSet<Integer>exclusionLst;
 	private Integer currentValue; 
 	private CellType cellType;
-	//private Integer siteId;
 	public int i,j;
+	public int newHashCode;
 	
 	public Cell(){
-		availableNumbers = new LinkedList<Integer>();
-		usedNumbers = new LinkedList<Integer>();
+		availableNumbers = new TreeSet<Integer>();
 		for(int i=1;i<=maxValue;i++){
 			availableNumbers.add(i);
 		}
+		exclusionLst = new TreeSet<Integer>();
 		cellType = CellType.EMPTY;
 	}
 	
 	public void setLocation(int i, int j){
 		this.i = i;
 		this.j = j;
+		newHashCode = 10*i+j;
 	}
+	 
 	public void setReadOnlyCell(Integer value){
 		cellType = CellType.READONLY;
+		setCurrentValue(value);
+		availableNumbers.clear();
+	}
+	public void setCurrentValue(Integer value){
 		currentValue = value;
-	}
-	public Integer fill(){
-		if(availableNumbers.isEmpty()){
-			return null;
-		} else {
-			currentValue = availableNumbers.pop();
-			usedNumbers.add(currentValue);
-			return currentValue;
-		}
-	}
-	public void resetAvailLst(){
-		availableNumbers = (LinkedList<Integer>)usedNumbers.clone();
-		usedNumbers = usedNumbers = new LinkedList<Integer>();
-		currentValue = null;
 	}
 	public Integer getCurrentValue() {
 		return currentValue;
 	}
-	/*
-	public void setSiteId(Integer siteId) {
-		this.siteId = siteId;
-	}
-	public Integer getSiteId() {
-		return siteId;
-	}
-	*/
-	public Boolean removeAvailNumber(Integer value){
-		return availableNumbers.removeFirstOccurrence(value);
-	}
-	public void undoRemove(Integer value){
-		if(!availableNumbers.contains(value)){
-			availableNumbers.add(value);
-		}
-	}
+	
 	public int compareTo(Cell o){
 		Integer th = this.availableNumbers.size();
 		Integer oh = o.availableNumbers.size();
 		return th.compareTo(oh);
 	}
-
+	public CellType getCellType() {
+		return cellType;
+	}
+	public TreeSet<Integer> getAvailableNumbers(){
+		return (TreeSet<Integer>)availableNumbers.clone();
+	}
+	public void resetCell(){
+		currentValue = null;
+		exclusionLst = new TreeSet<Integer>();
+	}
+	public void putAvailNumber(Integer value){
+		availableNumbers.add(value);
+		/*
+		if(!exclusionLst.contains(value)){
+			
+		}
+		*/
+	}
+	public boolean removeAvailNumber(Integer value){
+		/*
+		if(availableNumbers.remove(value)){
+			exclusionLst.add(value);
+		}
+		*/
+		return availableNumbers.remove(value);
+	}
 	public Boolean isAvailNumberExhausted(){
 		return availableNumbers.isEmpty();
 	}
-	public CellType getCellType() {
-		return cellType;
+	public int hashCode(){
+		return newHashCode;
 	}
 }

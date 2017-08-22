@@ -55,27 +55,26 @@ public class Grid implements GridIf {
 	void addCell(int i, int j, Integer value) {
 		Cell cell = grid[i][j];
 		cell.setReadOnlyCell(value);
-		eliminateTheValues(i, j, value);
-	}
-
-	public Integer fillCell(Cell cell) {
-		Integer retValue = cell.fill();
-		if(cell.getCurrentValue()!=null){
-			eliminateTheValues(cell.i, cell.j, cell.getCurrentValue());
-		}
-		return retValue;
+		eliminateTheValues(cell);
 	}
 	
-	private void eliminateTheValues(int rowNumber, int colNumber, int value){
-		removeValueInRow(rowNumber, value);
-		removeValueInColumn(colNumber, value);
-		removeValueInGrid(getSiteNumber(rowNumber, colNumber), value);
+	public LinkedList<Cell> eliminateTheValues(Cell cell){
+		LinkedList<Cell> tmp = new LinkedList<Cell>();
+		tmp.addAll(removeValueInRow(cell));
+		tmp.addAll(removeValueInColumn(cell));
+		tmp.addAll(removeValueInGrid(getSiteNumber(cell.i, cell.j), cell));
+		return tmp;
 	}
-	public void undoFillCell(Cell cell) {
+	public void undoElimination(Cell cell, LinkedList<Cell> lstOfCell) {
+		/*
 		if(cell.getCurrentValue()!=null){
-			undoRemoveValueInRow(cell.i, cell.getCurrentValue());
-			undoRemoveValueInColumn(cell.j, cell.getCurrentValue());
-			undoRemoveValueInGrid(getSiteNumber(cell.i, cell.j), cell.getCurrentValue());
+			undoRemoveValueInRow(cell);
+			undoRemoveValueInColumn(cell);
+			undoRemoveValueInGrid(getSiteNumber(cell.i, cell.j), cell);
+		}
+		*/
+		for (Cell cell2 : lstOfCell) {
+			cell2.putAvailNumber(cell.getCurrentValue());
 		}
 	}
 
@@ -173,10 +172,6 @@ public class Grid implements GridIf {
 		}
 		//Collections.sort(emptyCellLst);
 	}
-
-	private Cell popFromEmptyLst(){
-		return emptyCellLst.pop();
-	}
 	
 	public void pushToEmptyLst(Cell cell){
 		emptyCellLst.addFirst(cell);
@@ -186,10 +181,13 @@ public class Grid implements GridIf {
 		for(int i=1;i<=maxValue;i++){
 			for(int j=1;j<=maxValue;j++){
 				tmp = grid[i][j].getCurrentValue();
-				if(tmp!=null)
-					System.out.print(String.format("%4d", tmp));
-				else
+				if(tmp!=null){
+					System.out.print(String.format(" %4d", tmp));
+					//System.out.print(String.format(" %4d", tmp)+"("+grid[i][j].getAvailableNumbers()+")");
+				}
+				else{
 					System.out.print(String.format("%4s","_"));
+				}
 			}
 			System.out.println();
 		}
@@ -200,49 +198,79 @@ public class Grid implements GridIf {
 		return numberOfEmptyCells;
 	}
 
-	public void removeValueInRow(int rowNumber, Integer value) {
-		for(int j=1;j<=9;j++){
-			//System.out.println("i="+rowNumber+", j="+j);
-			grid[rowNumber][j].removeAvailNumber(value);
-		}
-	}
-	public void undoRemoveValueInRow(int rowNumber, Integer value) {
+	public LinkedList<Cell> removeValueInRow(Cell a_cell) {
+		LinkedList<Cell> tmp = new LinkedList<Cell>();
 		Cell cell;
 		for(int j=1;j<=9;j++){
-			cell = grid[rowNumber][j];
-			if(j!=cell.j){
-				cell.undoRemove(value);
+			cell = grid[a_cell.i][j]; 
+			if(!cell.equals(a_cell)){
+				if(cell.removeAvailNumber(a_cell.getCurrentValue())){
+					tmp.add(cell);
+				}
+			}
+		}
+		return tmp;
+	}
+	public void undoRemoveValueInRow(Cell a_cell) {
+		Cell cell;
+		for(int j=1;j<=9;j++){
+			cell = grid[a_cell.i][j]; 
+			if(!cell.equals(a_cell)){
+				cell.putAvailNumber(a_cell.getCurrentValue());
 			}
 		}
 	}
 
-	public void removeValueInColumn(int colNumber, Integer value) {
-		for(int i=1;i<=9;i++){
-			grid[i][colNumber].removeAvailNumber(value);
-		}
-	}
-	public void undoRemoveValueInColumn(int colNumber, Integer value) {
+	public LinkedList<Cell> removeValueInColumn(Cell a_cell) {
+		LinkedList<Cell> tmp = new LinkedList<Cell>();
 		Cell cell;
 		for(int i=1;i<=9;i++){
-			cell = grid[i][colNumber];
-			cell.undoRemove(value);
+			cell = grid[i][a_cell.j]; 
+			if(!cell.equals(a_cell)){
+				if(cell.removeAvailNumber(a_cell.getCurrentValue())){
+					tmp.add(cell);
+				}
+			}
+		}
+		return tmp;
+	}
+	public void undoRemoveValueInColumn(Cell a_cell) {
+		Cell cell;
+		for(int i=1;i<=9;i++){
+			cell = grid[i][a_cell.j]; 
+			if(!cell.equals(a_cell)){
+				cell.putAvailNumber(a_cell.getCurrentValue());
+			}
 		}
 	}
 
-	public void removeValueInGrid(int gridId, Integer value) {
+	public LinkedList<Cell> removeValueInGrid(int gridId, Cell a_cell) {
+		LinkedList<Cell> tmp = new LinkedList<Cell>();
 		for(Cell cell:site[gridId]){
-			cell.removeAvailNumber(value);
+			if(!cell.equals(a_cell)){
+				if(cell.removeAvailNumber(a_cell.getCurrentValue())){
+					tmp.add(cell);
+				}
+			}
+		}
+		return tmp;
+	}
+	public void undoRemoveValueInGrid(int gridId, Cell a_cell) {
+		for(Cell cell:site[gridId]){
+			if(!cell.equals(a_cell)){
+				cell.putAvailNumber(cell.getCurrentValue());
+			}
 		}
 	}
-	public void undoRemoveValueInGrid(int gridId, Integer value) {
-		for(Cell cell:site[gridId]){
-			cell.undoRemove(value);
+	
+	public Cell getCell(int index){
+		try{
+			return emptyCellLst.get(index);
+		} catch(Exception e){
+			return null;
 		}
 	}
-
-	public Cell getNextCell() {
-		return popFromEmptyLst();
-	}
+	
 	public Boolean isSolved(){
 		if(emptyCellLst.size()==0)
 			return true;
