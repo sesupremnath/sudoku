@@ -11,7 +11,6 @@ public class SudokoTest {
 	@Test
 	public void Test_1() throws NumberFormatException, IOException{
 		Sudoku su = new Sudoku("/Users/spr/Drive_Personal/SourceCode/GitRepo/input.txt");
-		su.solve();
 	}
 	@Test
 	public void Test_2(){

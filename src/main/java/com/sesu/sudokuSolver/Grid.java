@@ -6,75 +6,107 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
-public class Grid implements GridIf {
+public class Grid{
 	private int maxValue;
-	private Cell [][]grid;
-	private int numberOfEmptyCells;
-	private LinkedList<Cell> [] site;
 	private LinkedList<Cell>emptyCellLst;
+	private HashMap<String, HashSet<String>> peers;
+	private HashMap<Integer, HashSet<String>> site;
+	private HashMap<String, Cell> squares;
+	
+	public Grid(){
+		
+	}
 	
 	public Grid(String inputFile) throws NumberFormatException, IOException{
 		BufferedReader br = new BufferedReader(new FileReader(inputFile));
 		maxValue = Integer.parseInt(br.readLine());
-		Cell.maxValue =maxValue;
-		numberOfEmptyCells = maxValue*maxValue;
-		site = (LinkedList<Cell>[])new LinkedList[maxValue+1];
 		buildEmptyGrid();
 		buildSite();
+		buildMapping();
 		
 		String line;
 		String []tmp;
-		int rowNumber, colNumber, value;
+		int rowNumber, colNumber;
+		String value;
 		while((line=br.readLine())!=null){
 			tmp = line.split(",");
 			rowNumber = Integer.parseInt(tmp[0]);
 			colNumber = Integer.parseInt(tmp[1]);
-			value = Integer.parseInt(tmp[2]);
-			addCell(rowNumber,colNumber, value);
-			numberOfEmptyCells -= 1;
+			value = tmp[2];
+			setReadOnlySquare(siteToString(rowNumber,colNumber), value);
 		}
 		buildEmptyCellLst();
 	}
 
-	void buildEmptyGrid(){
-		Cell tmp;
-		grid = new Cell[maxValue+1][];
+	void buildSite(){
+		site = new HashMap<Integer, HashSet<String>>();
 		for(int i=1;i<=maxValue;i++){
-			grid[i] =  new Cell[maxValue+1];
+			site.put(i, new HashSet<String>());
+		}
+		
+		for(int i=1;i<=maxValue;i++){
 			for(int j=1;j<=maxValue;j++){
-				tmp = new Cell();
-				tmp.setLocation(i, j);
-				grid[i][j] = tmp;
+				site.get(getSiteNumber(i, j)).add(siteToString(i, j));
 			}
 		}
 	}
-	void addCell(int i, int j, Integer value) {
-		Cell cell = grid[i][j];
-		cell.setReadOnlyCell(value);
-		eliminateTheValues(cell);
+	void buildEmptyGrid(){
+		squares = new HashMap<String, Cell>();
+		for(int i=1;i<=maxValue;i++){
+			for(int j=1;j<=maxValue;j++){
+				Cell cell = new Cell(i,j);
+				cell.setLocation(i, j);
+				squares.put(siteToString(i, j), cell);
+			}
+		}
+	}
+	void buildMapping() {
+		String tmp;
+		peers = new HashMap<String, HashSet<String>>();
+		int t_i,t_j;
+		for (String key : squares.keySet()) {
+			peers.put(key, new  HashSet<String>());
+			t_i = Integer.parseInt(key.substring(0,1));
+			for(int j=1;j<=maxValue;j++){
+				tmp = siteToString(t_i, j);
+				peers.get(key).add(tmp);					
+			}
+			t_j = Integer.parseInt(key.substring(1,2));
+			for(int i=1;i<=maxValue;i++){
+				tmp = siteToString(i,t_j);
+				peers.get(key).add(tmp);					
+			}
+			peers.get(key).addAll(site.get(getSiteNumber(t_i,t_j)));
+			peers.get(key).remove(key);
+		}
 	}
 	
-	public LinkedList<Cell> eliminateTheValues(Cell cell){
-		LinkedList<Cell> tmp = new LinkedList<Cell>();
-		tmp.addAll(removeValueInRow(cell));
-		tmp.addAll(removeValueInColumn(cell));
-		tmp.addAll(removeValueInGrid(getSiteNumber(cell.i, cell.j), cell));
-		return tmp;
+	public String siteToString(int i, int j){
+		return ""+i+j;
 	}
-	public void undoElimination(Cell cell, LinkedList<Cell> lstOfCell) {
-		/*
-		if(cell.getCurrentValue()!=null){
-			undoRemoveValueInRow(cell);
-			undoRemoveValueInColumn(cell);
-			undoRemoveValueInGrid(getSiteNumber(cell.i, cell.j), cell);
-		}
-		*/
-		for (Cell cell2 : lstOfCell) {
-			cell2.putAvailNumber(cell.getCurrentValue());
+	void setReadOnlySquare(String location, String value) {
+		Cell cell = squares.get(location);
+		cell.setReadOnlyCell(value.toString());
+		eliminateTheValues(location, value);
+	}
+	void assignValue(Cell cell, String value){
+		assignValue(siteToString(cell.i, cell.j), value);
+	}
+	void assignValue(String location, String value){
+		Cell cell = squares.get(location);
+		cell.setCurrentValue(value.toString());
+		eliminateTheValues(location, value);
+	}
+	
+	public void eliminateTheValues(String square, String value){
+		for(String eachCell: peers.get(square)){
+			squares.get(eachCell).removeAvailNumber(value);
 		}
 	}
 
@@ -106,23 +138,13 @@ public class Grid implements GridIf {
 		}
 		return -1;
 	}
-	void buildSite() {
-		int siteId;
-		for(int i=1;i<=maxValue;i++){
-			for(int j=1;j<=maxValue;j++){
-				siteId = getSiteNumber(i, j);
-				if(site[siteId]==null){
-					site[siteId] = new LinkedList<Cell>();
-				}
-				site[siteId].add(grid[i][j]);
-			}
-		}
-	}
-	
+	/*
 	public void displaySite(){
+		Cell cell;
 		for(int i=1;i<=maxValue;i++){
 			System.out.println("SITE: "+i);
-			for(Cell cell: site[i]){
+			for(int j=1;j<=maxValue;j++){
+				cell = squares.get(siteToString(i, j));
 				System.out.print(cell.getCurrentValue()+" ");
 			}
 			System.out.println("");
@@ -160,112 +182,49 @@ public class Grid implements GridIf {
 		}
 		
 	}
-	
+	*/
 	void buildEmptyCellLst(){
 		emptyCellLst = new LinkedList<Cell>();
 		for(int i=1;i<=9;i++){
 			for(int j=1;j<=9;j++){
-				if(grid[i][j].getCellType().equals(CellType.EMPTY)){
-					emptyCellLst.add(grid[i][j]);
+				Cell cell = squares.get(siteToString(i, j));
+				//System.out.println(i+","+j);
+				if(cell.getCellType().equals(CellType.EMPTY)){
+					emptyCellLst.add(cell);
 				}
 			}
 		}
 		//Collections.sort(emptyCellLst);
 	}
 	
-	public void pushToEmptyLst(Cell cell){
-		emptyCellLst.addFirst(cell);
+	public LinkedList<Cell> getEmptyCellLst(){
+		return emptyCellLst;
 	}
 	public void display() {
-		Integer tmp;
+		Cell cell;
+		String value;
 		for(int i=1;i<=maxValue;i++){
 			for(int j=1;j<=maxValue;j++){
-				tmp = grid[i][j].getCurrentValue();
-				if(tmp!=null){
-					System.out.print(String.format(" %4d", tmp));
-					//System.out.print(String.format(" %4d", tmp)+"("+grid[i][j].getAvailableNumbers()+")");
+				cell = squares.get(siteToString(i, j));
+				value = cell.getCurrentValue();
+				if(value!=null){
+					System.out.print(String.format("%4s", value));
+					//System.out.print(String.format(" %4s", value)+"("+cell.getAvailNumber()+")");
 				}
 				else{
 					System.out.print(String.format("%4s","_"));
+					//System.out.print(String.format("%4s","_")+"("+cell.getAvailNumber()+")");
 				}
 			}
 			System.out.println();
 		}
-		System.out.println("-------------");
+		System.out.println("--------------------------------------- " + this.emptyCellLst.size());
 	}
 
-	int getNumberOfEmptyCells() {
-		return numberOfEmptyCells;
-	}
-
-	public LinkedList<Cell> removeValueInRow(Cell a_cell) {
-		LinkedList<Cell> tmp = new LinkedList<Cell>();
-		Cell cell;
-		for(int j=1;j<=9;j++){
-			cell = grid[a_cell.i][j]; 
-			if(!cell.equals(a_cell)){
-				if(cell.removeAvailNumber(a_cell.getCurrentValue())){
-					tmp.add(cell);
-				}
-			}
-		}
-		return tmp;
-	}
-	public void undoRemoveValueInRow(Cell a_cell) {
-		Cell cell;
-		for(int j=1;j<=9;j++){
-			cell = grid[a_cell.i][j]; 
-			if(!cell.equals(a_cell)){
-				cell.putAvailNumber(a_cell.getCurrentValue());
-			}
-		}
-	}
-
-	public LinkedList<Cell> removeValueInColumn(Cell a_cell) {
-		LinkedList<Cell> tmp = new LinkedList<Cell>();
-		Cell cell;
-		for(int i=1;i<=9;i++){
-			cell = grid[i][a_cell.j]; 
-			if(!cell.equals(a_cell)){
-				if(cell.removeAvailNumber(a_cell.getCurrentValue())){
-					tmp.add(cell);
-				}
-			}
-		}
-		return tmp;
-	}
-	public void undoRemoveValueInColumn(Cell a_cell) {
-		Cell cell;
-		for(int i=1;i<=9;i++){
-			cell = grid[i][a_cell.j]; 
-			if(!cell.equals(a_cell)){
-				cell.putAvailNumber(a_cell.getCurrentValue());
-			}
-		}
-	}
-
-	public LinkedList<Cell> removeValueInGrid(int gridId, Cell a_cell) {
-		LinkedList<Cell> tmp = new LinkedList<Cell>();
-		for(Cell cell:site[gridId]){
-			if(!cell.equals(a_cell)){
-				if(cell.removeAvailNumber(a_cell.getCurrentValue())){
-					tmp.add(cell);
-				}
-			}
-		}
-		return tmp;
-	}
-	public void undoRemoveValueInGrid(int gridId, Cell a_cell) {
-		for(Cell cell:site[gridId]){
-			if(!cell.equals(a_cell)){
-				cell.putAvailNumber(cell.getCurrentValue());
-			}
-		}
-	}
-	
-	public Cell getCell(int index){
+	public Cell getCell(){
 		try{
-			return emptyCellLst.get(index);
+			Collections.sort(emptyCellLst);
+			return emptyCellLst.pop();
 		} catch(Exception e){
 			return null;
 		}
@@ -278,4 +237,19 @@ public class Grid implements GridIf {
 			return false;
 	}
 	
+	public Grid getCopy(){
+		Grid gd = new Grid();
+		gd.maxValue = this.maxValue;
+		gd.emptyCellLst = new LinkedList<Cell>();
+		gd.squares = new HashMap<String, Cell>();
+		gd.peers = this.peers;
+		gd.site = this.site;
+		for(int i=1;i<=maxValue;i++){
+			for(int j=1;j<=maxValue;j++){
+				gd.squares.put(siteToString(i, j), this.squares.get(siteToString(i, j)).getCopy());
+			}
+		}
+		gd.buildEmptyCellLst();
+		return gd;
+	}
 }

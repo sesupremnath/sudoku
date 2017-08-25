@@ -10,76 +10,79 @@ enum CellType{
 }
 
 public class Cell implements Comparable<Cell>{
-	public static int maxValue;
-	private TreeSet<Integer> availableNumbers;
-	private TreeSet<Integer>exclusionLst;
-	private Integer currentValue; 
+	private String availableNumbers;
+	private String currentValue; 
 	private CellType cellType;
 	public int i,j;
 	public int newHashCode;
 	
 	public Cell(){
-		availableNumbers = new TreeSet<Integer>();
-		for(int i=1;i<=maxValue;i++){
-			availableNumbers.add(i);
-		}
-		exclusionLst = new TreeSet<Integer>();
+		availableNumbers = "123456789";
 		cellType = CellType.EMPTY;
 	}
-	
+	public Cell(int i, int j){
+		this();
+		setLocation(i, j);
+	}
+	public Cell(Cell cell){
+		this.availableNumbers = cell.availableNumbers;
+		this.currentValue = cell.currentValue;
+		this.cellType = cell.cellType;
+		this.i = cell.i;
+		this.j = cell.j;
+		this.newHashCode = cell.newHashCode;
+	}
 	public void setLocation(int i, int j){
 		this.i = i;
 		this.j = j;
 		newHashCode = 10*i+j;
 	}
 	 
-	public void setReadOnlyCell(Integer value){
+	public void setReadOnlyCell(String value){
 		cellType = CellType.READONLY;
 		setCurrentValue(value);
-		availableNumbers.clear();
+		availableNumbers = "";
 	}
-	public void setCurrentValue(Integer value){
+	public void setCurrentValue(String value){
 		currentValue = value;
+		cellType = CellType.FILLED;
 	}
-	public Integer getCurrentValue() {
+	public String getCurrentValue() {
 		return currentValue;
 	}
 	
 	public int compareTo(Cell o){
-		Integer th = this.availableNumbers.size();
-		Integer oh = o.availableNumbers.size();
+		Integer th = this.availableNumbers.length();
+		Integer oh = o.availableNumbers.length();
 		return th.compareTo(oh);
 	}
+	
 	public CellType getCellType() {
 		return cellType;
 	}
-	public TreeSet<Integer> getAvailableNumbers(){
-		return (TreeSet<Integer>)availableNumbers.clone();
+	public void removeAvailNumber(String value){
+		availableNumbers = availableNumbers.replace(value, "");
 	}
-	public void resetCell(){
-		currentValue = null;
-		exclusionLst = new TreeSet<Integer>();
-	}
-	public void putAvailNumber(Integer value){
-		availableNumbers.add(value);
-		/*
-		if(!exclusionLst.contains(value)){
-			
-		}
-		*/
-	}
-	public boolean removeAvailNumber(Integer value){
-		/*
-		if(availableNumbers.remove(value)){
-			exclusionLst.add(value);
-		}
-		*/
-		return availableNumbers.remove(value);
-	}
-	public Boolean isAvailNumberExhausted(){
-		return availableNumbers.isEmpty();
-	}
+	
 	public int hashCode(){
 		return newHashCode;
+	}
+	
+	public boolean equals(Cell cell) {
+		return this.hashCode() == cell.hashCode();
+	}
+	public String getAvailNumber(){
+		return availableNumbers;
+	}
+	
+	public Cell getCopy(){
+		Cell cell = new Cell();
+		cell.i = this.i;
+		cell.j = this.j;
+		cell.availableNumbers = this.availableNumbers;
+		cell.cellType = this.cellType;
+		cell.currentValue = this.currentValue;
+		cell.newHashCode = this.newHashCode;
+		return cell;
 	}
 }
